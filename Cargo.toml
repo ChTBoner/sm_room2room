@@ -1,0 +1,13 @@
+[package]
+name = "sm_room2room"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0.152", features = ["derive"] }
+serde_json = "1.0.91"
+strum_macros = "0.24.3"
+websocket = "0.26.5"
+csv = "1.1"
