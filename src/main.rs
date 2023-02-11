@@ -1,39 +1,43 @@
-use std::collections::HashMap;
-
 mod room_data;
 mod usb2snes;
+mod supermetroid;
 
-fn get_room_name(rooms_data: &HashMap<String, String>, curr_room_id: Vec<u8>) -> String {
-    let key = format!("0x{:02X}{:02X}", curr_room_id[1], curr_room_id[0]).to_owned();
-    match rooms_data.get(&key) {
-        Some(room_name) => return room_name.to_owned(),
-        None => format!("{}, Room Name Unknown", key),
-    }
-}
+use usb2snes::usb2snes::SyncClient;
+use std::time::{Duration, Instant};
+use supermetroid::super_metroid::{GameInfo, GameStates};
+use room_data::room_data::Room;
+
 
 fn main() {
-    let rooms_data = room_data::room_data::room_data_gen();
-
-    let mut usb2snes = usb2snes::usb2snes::SyncClient::connect();
+    let mut usb2snes = SyncClient::connect();
 
     println!("Connected to the Usb2snes server");
     usb2snes.set_name(String::from("usb2snes-cli"));
     println!("Server version is : {:?}", usb2snes.app_version());
 
     let devices = usb2snes.list_device();
-    dbg!(&devices);
 
     usb2snes.attach(&devices[0]);
 
-    let mut prev_room_name = "".to_string();
+    let mut prev_room_name = Room::new();
+
+    let mut previous_state = &GameStates::Unknown;
+    // let now = Instant::now();
+    let game_info = GameInfo::new();
     loop {
-        let curr_room_id = usb2snes.get_address(0xF5079B, 2);
+        let current_state = game_info.get_game_state(&mut usb2snes);
+        
+        let current_room = game_info.get_room_info(&mut usb2snes);
 
-        let current_room_name = get_room_name(&rooms_data, curr_room_id);
 
-        if prev_room_name != current_room_name {
-            println!("{}", current_room_name);
-            prev_room_name = current_room_name.to_owned();
+        if prev_room_name != current_room {
+            prev_room_name = current_room.clone();
+            dbg!(current_room);
+        }
+
+        if previous_state != current_state {
+            previous_state = current_state;
+            dbg!(current_state);
         }
     }
 }

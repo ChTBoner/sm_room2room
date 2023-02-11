@@ -25,7 +25,7 @@ pub mod usb2snes {
     use strum_macros::Display;
     use websocket::sync::stream::TcpStream;
     use websocket::{ClientBuilder, Message};
-
+    
     #[derive(Display, Debug)]
     #[allow(dead_code)]
     pub enum Command {
