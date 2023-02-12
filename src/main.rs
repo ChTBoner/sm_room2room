@@ -26,13 +26,11 @@ fn main() {
 
     let mut previous_game_time = GameTime::new();
     let mut game_time = GameTime::new();
-    let mut game_time_spent_in_room = GameTime::new();
 
     let mut prev_room_name = Room::new();
     let mut current_room = Room::new();
 
-    let mut real_time_spent_in_room = Duration::new(0, 0);
-    let mut global_rta_room_entered ;
+    let mut global_rta_room_entered;
 
     loop {
         let current_state = game_info.get_game_state(&mut usb2snes);
@@ -45,39 +43,42 @@ fn main() {
                 prev_room_name = Room::new();
                 previous_game_time = GameTime::new();
                 game_time = GameTime::new();
-                game_time_spent_in_room = GameTime::new();
                 current_room = Room {
                     smile_id: "0xDF45".to_string(),
                     region: "Ceres".to_string(),
                     subregion: "".to_string(),
                     room_name: "Ceres Elevator Room".to_string(),
                 };
-                real_time_spent_in_room = Duration::new(0, 0);
             }
-            GameStates::Playing => {
+            GameStates::Playing | GameStates::Saving => {
                 if [
                     GameStates::DoorTransition,
                     GameStates::CeresElevator,
-                    GameStates::NewGame
+                    GameStates::NewGame,
                 ]
                 .contains(&previous_state.state)
                 {
                     current_room = game_info.get_room_info(&mut usb2snes);
                     global_rta_room_entered = global_timer.elapsed();
-                    println!("Entering {} from {}", &current_room.room_name, &prev_room_name.room_name);
+                    println!(
+                        "Entering {} from {}",
+                        &current_room.room_name, &prev_room_name.room_name
+                    );
                     println!("{}", global_rta_room_entered);
                     game_time.print_game_time();
-                    
                 }
             }
             GameStates::DoorTransition | GameStates::CeresElevator => {
                 if previous_state.state != current_state.state {
                     game_time = game_info.get_game_time(&mut usb2snes);
-                    game_time_spent_in_room = GameTime::diff(&game_time, &previous_game_time);
-                    real_time_spent_in_room = room_timer.elapsed();
+                    let game_time_spent_in_room = GameTime::diff(&game_time, &previous_game_time);
+                    let real_time_spent_in_room = room_timer.elapsed();
                     println!("Leaving {}", &current_room.room_name);
                     println!("RTA = {}", real_time_spent_in_room,);
-                    println!("IGT = {}{}f",  game_time_spent_in_room.total, game_time_spent_in_room.frames);
+                    println!(
+                        "IGT = {}{}f",
+                        game_time_spent_in_room.total, game_time_spent_in_room.frames
+                    );
                     prev_room_name = current_room.to_owned();
                     previous_game_time = game_time.clone();
                     room_timer = Instant::now();

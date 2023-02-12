@@ -13,7 +13,7 @@ pub mod super_metroid {
         Menus,       // 0x04 - 4
         LoadArea,    // 0x05 - 5
         LoadGame,    // 0x06
-        // Saving,      // 0x07
+        Saving,      // 0x07
         Playing,     // 0x08
         DoorTransition,
         Unpausing, // 0x10, 0x11, 0x12
@@ -132,7 +132,7 @@ pub mod super_metroid {
                     (0x04, GameStates::Menus),
                     (0x05, GameStates::LoadArea),
                     (0x06, GameStates::LoadGame),
-                    (0x07, GameStates::Playing),
+                    (0x07, GameStates::Saving),
                     (0x08, GameStates::Playing),
                     (0x09, GameStates::DoorTransition),
                     (0x10, GameStates::DoorTransition),
@@ -224,7 +224,5 @@ pub mod super_metroid {
                     + Duration::hours(result[6] as i64),
             }
         }
-
-        
     }
 }
