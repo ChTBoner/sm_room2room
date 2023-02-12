@@ -45,7 +45,7 @@ pub mod room_data {
                             region: record[1].to_owned(),
                             subregion: record[2].to_owned(),
                             room_name: record[3].to_owned(),
-                        }
+                        },
                     );
                 }
                 Err(e) => panic!("Error parsing csv file : {:?}", e),
