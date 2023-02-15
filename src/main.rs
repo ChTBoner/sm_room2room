@@ -27,8 +27,16 @@ fn main() {
     // let mut game_time = GameTime::new();
 
     // let mut prev_room_name = Room::new();
-    let mut previous_room = Room::new("0".to_string(), global_timer.elapsed(), game_info.current_game_time);
-    let mut current_room = Room::new("0".to_string(), global_timer.elapsed(), game_info.current_game_time);
+    let mut previous_room = Room::new(
+        "0".to_string(),
+        global_timer.elapsed(),
+        game_info.current_game_time,
+    );
+    let mut current_room = Room::new(
+        "0".to_string(),
+        global_timer.elapsed(),
+        game_info.current_game_time,
+    );
 
     let mut global_rta_room_entered;
 
@@ -48,8 +56,16 @@ fn main() {
                 game_info.current_game_time = GameTime::new();
 
                 // reset room info
-                previous_room = Room::new("0".to_string(), global_timer.elapsed(), game_info.current_game_time);
-                current_room = Room::new("0".to_string(), global_timer.elapsed(), game_info.current_game_time);
+                previous_room = Room::new(
+                    "0".to_string(),
+                    global_timer.elapsed(),
+                    game_info.current_game_time,
+                );
+                current_room = Room::new(
+                    "0".to_string(),
+                    global_timer.elapsed(),
+                    game_info.current_game_time,
+                );
             }
             GameStates::Playing | GameStates::Saving => {
                 if [

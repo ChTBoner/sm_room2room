@@ -39,14 +39,7 @@ pub mod super_metroid {
         TourianOpen,
         ShaktoolDoneDigging,
         ChozoLoweredAcid,
-        MeridiaTubeBroken
-
-    }
-
-    #[derive(Debug, Clone)]
-    pub struct Address {
-        pub location: u32,
-        pub size: usize,
+        MeridiaTubeBroken,
     }
 
     #[derive(Debug, Clone, Copy, PartialEq)]
@@ -97,22 +90,17 @@ pub mod super_metroid {
 
     #[derive(Debug, Clone)]
     pub struct GameInfo {
-        // pub rooms_data: HashMap<String, Room>,
-
-        pub current_room_address: Address,
         pub previous_room_id: String,
         pub current_room_id: String,
 
-        game_time_address: Address,
         pub current_game_time: GameTime,
         pub previous_game_time: GameTime,
 
-        event_flags_address: Address,
         pub event_flags: Vec<Events>,
 
         pub previous_game_state: GameStates,
         pub current_game_state: GameStates,
-        pub game_state_address: Address,
+
         pub game_states: HashMap<u8, GameStates>,
     }
 
@@ -120,35 +108,19 @@ pub mod super_metroid {
         pub fn new() -> Self {
             Self {
                 // current room data
-                current_room_address: Address {
-                    location: 0xF5079B,
-                    size: 2,
-                },
                 previous_room_id: "0".to_string(),
                 current_room_id: "0".to_string(),
 
                 // game time data
-                game_time_address: Address {
-                    location: 0xF509DA,
-                    size: 8,
-                },
                 current_game_time: GameTime::new(),
                 previous_game_time: GameTime::new(),
-
-                event_flags_address: Address {
-                    location: 0xF5D821,
-                    size: 1,
-                },
 
                 event_flags: Vec::new(),
 
                 // current game state data
                 previous_game_state: GameStates::Unknown,
                 current_game_state: GameStates::Unknown,
-                game_state_address: Address {
-                    location: 0xF50998,
-                    size: 1,
-                },
+
                 game_states: HashMap::from([
                     (0x00, GameStates::Logo),
                     (0x01, GameStates::TitleScreen),
@@ -198,22 +170,11 @@ pub mod super_metroid {
 
         pub fn update_data(&mut self, client: &mut SyncClient) {
             let addresses_array = [
-                (
-                    self.game_state_address.location,
-                    self.game_state_address.size,
-                ),
-                (
-                    self.game_time_address.location,
-                    self.game_time_address.size),
-                (
-                    self.current_room_address.location,
-                    self.current_room_address.size,
-                ),
-                (
-                    self.event_flags_address.location,
-                    self.event_flags_address.size
-                ),
-                ( 0xF50FB2, 2)
+                (0xF50998, 1), // game state
+                (0xF509DA, 8), // game time
+                (0xF5079B, 2), // current roomID
+                (0xF5D821, 1), // event flag
+                (0xF50FB2, 2), // enemy AI to identify ship in RTA
             ];
 
             let data = client.get_addresses(&addresses_array).unwrap();
@@ -222,15 +183,17 @@ pub mod super_metroid {
             self.current_game_time = self.get_game_time(&data[1]);
             self.current_room_id = self.get_room_id(&data[2]);
             self.current_game_state = self.get_game_state(&data[0], &data[4]);
-            // self.event_flags = self.get_event_flags(&data[3])
         }
 
         fn get_event_flags(&self, result: &[u8]) -> Vec<Events> {
             // convert u8 to string to represent a binarry number
             let events_array = format!("{:08b}", result[0]);
             // convert the string to a bit array
-            let flags_array: Vec<u32> = events_array.chars().map(|c| c.to_digit(2).unwrap()).collect();
-            
+            let flags_array: Vec<u32> = events_array
+                .chars()
+                .map(|c| c.to_digit(2).unwrap())
+                .collect();
+
             let mut events: Vec<Events> = Vec::new();
 
             if flags_array[0] == 1 {
@@ -247,19 +210,18 @@ pub mod super_metroid {
             }
             if flags_array[4] == 1 {
                 events.push(Events::MeridiaTubeBroken);
-            } 
+            }
             if flags_array[5] == 1 {
                 events.push(Events::TourianOpen);
             }
             events
-
         }
 
         fn get_game_state(&self, result: &[u8], ai: &[u8]) -> GameStates {
             let id = result[0].to_owned();
-            
+
             if self.event_flags.contains(&Events::ZebesAblaze) && self.is_ship_ai(ai) {
-                return GameStates::RealTimeEnd
+                return GameStates::RealTimeEnd;
             };
 
             match self.game_states.get(&id) {
@@ -276,7 +238,7 @@ pub mod super_metroid {
         }
 
         fn is_ship_ai(&self, result: &[u8]) -> bool {
-            format!("0x{:02X}{:02X}", result[1], result[0]) == "0xAA4F".to_string()
+            format!("0x{:02X}{:02X}", result[1], result[0]) == *"0xAA4F"
         }
 
         pub fn get_game_time(&self, result: &[u8]) -> GameTime {
@@ -290,6 +252,5 @@ pub mod super_metroid {
                     + Duration::hours(result[6] as i64),
             }
         }
-
     }
 }
