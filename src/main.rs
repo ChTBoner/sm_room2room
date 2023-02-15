@@ -38,7 +38,7 @@ fn main() {
         // if previous_state != current_state {
         //     dbg!(&current_state);
         // }
-        match game_info.current_game_state.state {
+        match game_info.current_game_state {
             GameStates::NewGame => {
                 // reset global timer
                 global_timer = Instant::now();
@@ -57,7 +57,7 @@ fn main() {
                     GameStates::CeresElevator,
                     GameStates::NewGame,
                 ]
-                .contains(&game_info.previous_game_state.state)
+                .contains(&game_info.previous_game_state)
                 {
                     // entering new room
                     previous_room = current_room;
@@ -75,11 +75,13 @@ fn main() {
                         current_room.location.name, previous_room.location.name
                     );
                     println!("{}", global_rta_room_entered);
-                    game_info.current_game_time.print_game_time();
                 }
+                // if game_info.previous_game_state == GameStates::RealTimeEnd {
+                //     global_timer.
+                // }
             }
             GameStates::DoorTransition | GameStates::CeresElevator => {
-                if game_info.previous_game_state.state != game_info.current_game_state.state {
+                if game_info.previous_game_state != game_info.current_game_state {
                     let igt_in_room = GameTime::diff(
                         game_info.current_game_time.to_owned(),
                         current_room.igt_entry,
@@ -88,16 +90,21 @@ fn main() {
 
                     println!("Leaving {}", &current_room.location.name);
                     println!("RTA = {}", rta_in_room,);
-                    println!(
-                        "IGT = {}{}f",
-                        igt_in_room.total, igt_in_room.frames
-                    );
+                    igt_in_room.print_game_time();
                 }
             }
             GameStates::GameTimeEnd => {
-                game_info.current_game_time.print_game_time();
+                if game_info.current_game_state != game_info.previous_game_state {
+                    println!("IGT Run finished");
+                    game_info.current_game_time.print_game_time();
+                }
             }
-            GameStates::GameOver => {
+            GameStates::RealTimeEnd => {
+                if game_info.current_game_state != game_info.previous_game_state {
+                    println!("Run finished - RTA : {}", global_timer.elapsed());
+                }
+            }
+            GameStates::GameOver | GameStates::Dead => {
                 println!("GameOver");
                 let total_rta = global_timer.elapsed();
                 println!("RTA: {}", total_rta);
@@ -105,7 +112,7 @@ fn main() {
             }
             _ => {
                 if game_info.previous_game_state != game_info.current_game_state {
-                    println!("Not Playing - {}", game_info.current_game_state.state);
+                    println!("Not Playing - {}", game_info.current_game_state);
                 }
             }
         };

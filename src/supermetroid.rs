@@ -26,24 +26,21 @@ pub mod super_metroid {
         CeresEscape,
         CeresElevator,
         GameTimeEnd,
+        RealTimeEnd,
         Credits,
         OpeningSeq,
         Unknown,
     }
 
-    #[derive(Debug, Clone, Copy, PartialEq)]
-    pub struct GameState {
-        pub id: u8,
-        pub state: GameStates,
-    }
+    #[derive(Debug, Clone, PartialEq)]
+    pub enum Events {
+        AnimalsSaved,
+        ZebesAblaze,
+        TourianOpen,
+        ShaktoolDoneDigging,
+        ChozoLoweredAcid,
+        MeridiaTubeBroken
 
-    impl GameState {
-        pub fn new() -> Self {
-            Self {
-                id: 0x40,
-                state: GameStates::Unknown,
-            }
-        }
     }
 
     #[derive(Debug, Clone)]
@@ -106,12 +103,15 @@ pub mod super_metroid {
         pub previous_room_id: String,
         pub current_room_id: String,
 
-        pub game_time_address: Address,
+        game_time_address: Address,
         pub current_game_time: GameTime,
         pub previous_game_time: GameTime,
 
-        pub previous_game_state: GameState,
-        pub current_game_state: GameState,
+        event_flags_address: Address,
+        pub event_flags: Vec<Events>,
+
+        pub previous_game_state: GameStates,
+        pub current_game_state: GameStates,
         pub game_state_address: Address,
         pub game_states: HashMap<u8, GameStates>,
     }
@@ -135,9 +135,16 @@ pub mod super_metroid {
                 current_game_time: GameTime::new(),
                 previous_game_time: GameTime::new(),
 
+                event_flags_address: Address {
+                    location: 0xF5D821,
+                    size: 1,
+                },
+
+                event_flags: Vec::new(),
+
                 // current game state data
-                previous_game_state: GameState::new(),
-                current_game_state: GameState::new(),
+                previous_game_state: GameStates::Unknown,
+                current_game_state: GameStates::Unknown,
                 game_state_address: Address {
                     location: 0xF50998,
                     size: 1,
@@ -195,40 +202,81 @@ pub mod super_metroid {
                     self.game_state_address.location,
                     self.game_state_address.size,
                 ),
-                (self.game_time_address.location, self.game_time_address.size),
+                (
+                    self.game_time_address.location,
+                    self.game_time_address.size),
                 (
                     self.current_room_address.location,
                     self.current_room_address.size,
                 ),
+                (
+                    self.event_flags_address.location,
+                    self.event_flags_address.size
+                ),
+                ( 0xF50FB2, 2)
             ];
 
             let data = client.get_addresses(&addresses_array).unwrap();
 
-            self.current_game_state = self.get_game_state(&data[0]);
+            self.event_flags = self.get_event_flags(&data[3]);
             self.current_game_time = self.get_game_time(&data[1]);
             self.current_room_id = self.get_room_id(&data[2]);
+            self.current_game_state = self.get_game_state(&data[0], &data[4]);
+            // self.event_flags = self.get_event_flags(&data[3])
         }
 
-        pub fn get_game_state(&self, result: &[u8]) -> GameState {
+        fn get_event_flags(&self, result: &[u8]) -> Vec<Events> {
+            // convert u8 to string to represent a binarry number
+            let events_array = format!("{:08b}", result[0]);
+            // convert the string to a bit array
+            let flags_array: Vec<u32> = events_array.chars().map(|c| c.to_digit(2).unwrap()).collect();
+            
+            let mut events: Vec<Events> = Vec::new();
+
+            if flags_array[0] == 1 {
+                events.push(Events::AnimalsSaved);
+            }
+            if flags_array[1] == 1 {
+                events.push(Events::ZebesAblaze);
+            }
+            if flags_array[2] == 1 {
+                events.push(Events::ShaktoolDoneDigging);
+            }
+            if flags_array[3] == 1 {
+                events.push(Events::ChozoLoweredAcid);
+            }
+            if flags_array[4] == 1 {
+                events.push(Events::MeridiaTubeBroken);
+            } 
+            if flags_array[5] == 1 {
+                events.push(Events::TourianOpen);
+            }
+            events
+
+        }
+
+        fn get_game_state(&self, result: &[u8], ai: &[u8]) -> GameStates {
             let id = result[0].to_owned();
+            
+            if self.event_flags.contains(&Events::ZebesAblaze) && self.is_ship_ai(ai) {
+                return GameStates::RealTimeEnd
+            };
 
             match self.game_states.get(&id) {
-                Some(state) => GameState {
-                    id,
-                    state: state.to_owned(),
-                },
+                Some(state) => state.to_owned(),
                 None => {
                     println!("unknown game state: {:02X}", id);
-                    GameState {
-                        id,
-                        state: GameStates::Unknown,
-                    }
+                    GameStates::Unknown
                 }
             }
         }
 
         fn get_room_id(&self, result: &[u8]) -> String {
             format!("0x{:02X}{:02X}", result[1], result[0])
+        }
+
+        fn is_ship_ai(&self, result: &[u8]) -> bool {
+            format!("0x{:02X}{:02X}", result[1], result[0]) == "0xAA4F".to_string()
         }
 
         pub fn get_game_time(&self, result: &[u8]) -> GameTime {
@@ -242,5 +290,6 @@ pub mod super_metroid {
                     + Duration::hours(result[6] as i64),
             }
         }
+
     }
 }
