@@ -1,11 +1,10 @@
 pub mod super_metroid {
-    use crate::room_data::room_data;
-    use crate::usb2snes;
+    use crate::qusb2snes::usb2snes::SyncClient;
     use std::collections::HashMap;
+    use strum_macros::Display;
     use time::Duration;
 
-    use crate::room_data::room_data::Room;
-    #[derive(Debug, PartialEq, Clone, Copy)]
+    #[derive(Debug, PartialEq, Clone, Copy, Display)]
     pub enum GameStates {
         Logo,        // 0x00
         TitleScreen, // 0x01 - 1
@@ -23,16 +22,16 @@ pub mod super_metroid {
         TimerUp,   // 0x23
         GameOver,  // 0x24
         Demos,     // 0x2A
-        Unknown,
         NewGame,
         CeresEscape,
         CeresElevator,
         GameTimeEnd,
         Credits,
         OpeningSeq,
+        Unknown,
     }
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, Copy, PartialEq)]
     pub struct GameState {
         pub id: u8,
         pub state: GameStates,
@@ -41,19 +40,19 @@ pub mod super_metroid {
     impl GameState {
         pub fn new() -> Self {
             Self {
-                id: 0,
+                id: 0x40,
                 state: GameStates::Unknown,
             }
         }
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct Address {
         pub location: u32,
         pub size: usize,
     }
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Clone, Copy, PartialEq)]
     pub struct GameTime {
         pub frames: u8,
         pub seconds: u8,
@@ -73,18 +72,17 @@ pub mod super_metroid {
             }
         }
 
-        pub fn diff(current: &GameTime, previous: &GameTime) -> Self {
+        pub fn diff(current: GameTime, previous: GameTime) -> Self {
             let total_diff = current.total - previous.total;
 
-            let frames: u8;
-            if current.frames >= previous.frames {
-                frames = current.frames - previous.frames;
+            let frames = if current.frames >= previous.frames {
+                current.frames - previous.frames
             } else {
-                frames = 60 - previous.frames + current.frames;
-            }
+                60 - previous.frames + current.frames
+            };
 
             Self {
-                frames: frames,
+                frames,
                 seconds: total_diff.whole_seconds() as u8,
                 minutes: total_diff.whole_minutes() as u8,
                 hours: total_diff.whole_hours() as u8,
@@ -100,30 +98,49 @@ pub mod super_metroid {
         }
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct GameInfo {
-        pub rooms_data: HashMap<String, Room>,
+        // pub rooms_data: HashMap<String, Room>,
+
         pub current_room_address: Address,
+        pub previous_room_id: String,
+        pub current_room_id: String,
+
+        pub game_time_address: Address,
+        pub current_game_time: GameTime,
+        pub previous_game_time: GameTime,
+
+        pub previous_game_state: GameState,
+        pub current_game_state: GameState,
         pub game_state_address: Address,
         pub game_states: HashMap<u8, GameStates>,
-        pub game_time_address: Address,
     }
 
     impl GameInfo {
         pub fn new() -> Self {
             Self {
-                rooms_data: room_data::room_data_gen(),
+                // current room data
                 current_room_address: Address {
                     location: 0xF5079B,
                     size: 2,
                 },
-                game_state_address: Address {
-                    location: 0xF50998,
-                    size: 1,
-                },
+                previous_room_id: "0".to_string(),
+                current_room_id: "0".to_string(),
+
+                // game time data
                 game_time_address: Address {
                     location: 0xF509DA,
                     size: 8,
+                },
+                current_game_time: GameTime::new(),
+                previous_game_time: GameTime::new(),
+
+                // current game state data
+                previous_game_state: GameState::new(),
+                current_game_state: GameState::new(),
+                game_state_address: Address {
+                    location: 0xF50998,
+                    size: 1,
                 },
                 game_states: HashMap::from([
                     (0x00, GameStates::Logo),
@@ -172,48 +189,49 @@ pub mod super_metroid {
             }
         }
 
-        pub fn get_game_state(&self, client: &mut usb2snes::usb2snes::SyncClient) -> GameState {
-            let result = client.get_address(
-                self.game_state_address.location,
-                self.game_state_address.size,
-            );
+        pub fn update_data(&mut self, client: &mut SyncClient) {
+            let addresses_array = [
+                (
+                    self.game_state_address.location,
+                    self.game_state_address.size,
+                ),
+                (self.game_time_address.location, self.game_time_address.size),
+                (
+                    self.current_room_address.location,
+                    self.current_room_address.size,
+                ),
+            ];
 
+            let data = client.get_addresses(&addresses_array).unwrap();
+
+            self.current_game_state = self.get_game_state(&data[0]);
+            self.current_game_time = self.get_game_time(&data[1]);
+            self.current_room_id = self.get_room_id(&data[2]);
+        }
+
+        pub fn get_game_state(&self, result: &[u8]) -> GameState {
             let id = result[0].to_owned();
 
             match self.game_states.get(&id) {
-                Some(state) => {
-                    return GameState {
-                        id: id,
-                        state: state.to_owned(),
-                    }
-                }
+                Some(state) => GameState {
+                    id,
+                    state: state.to_owned(),
+                },
                 None => {
                     println!("unknown game state: {:02X}", id);
-                    return GameState {
-                        id: id,
+                    GameState {
+                        id,
                         state: GameStates::Unknown,
-                    };
+                    }
                 }
             }
         }
 
-        pub fn get_room_info(&self, client: &mut usb2snes::usb2snes::SyncClient) -> Room {
-            let result = client.get_address(
-                self.current_room_address.location,
-                self.current_room_address.size,
-            );
-
-            let key = format!("0x{:02X}{:02X}", result[1], result[0]).to_owned();
-            match self.rooms_data.get(&key) {
-                Some(room_name) => return room_name.to_owned(),
-                None => Room::new(),
-            }
+        fn get_room_id(&self, result: &[u8]) -> String {
+            format!("0x{:02X}{:02X}", result[1], result[0])
         }
 
-        pub fn get_game_time(&self, client: &mut usb2snes::usb2snes::SyncClient) -> GameTime {
-            let result =
-                client.get_address(self.game_time_address.location, self.game_time_address.size);
-
+        pub fn get_game_time(&self, result: &[u8]) -> GameTime {
             GameTime {
                 frames: result[0],
                 seconds: result[2],

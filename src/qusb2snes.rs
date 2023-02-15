@@ -22,6 +22,7 @@
 pub mod usb2snes {
 
     use serde::{Deserialize, Serialize};
+    use std::error::Error;
     use strum_macros::Display;
     use websocket::sync::stream::TcpStream;
     use websocket::{ClientBuilder, Message};
@@ -121,10 +122,13 @@ pub mod usb2snes {
             if self.devel {
                 println!("Send command : {:?}", command);
             }
-            let nspace: Option<String> = match space {
-                None => None,
-                Some(sp) => Some(sp.to_string()),
-            };
+            // let nspace: Option<String> = match space {
+            //     None => None,
+            //     Some(sp) => Some(sp.to_string()),
+            // };
+
+            let nspace = space.map(|sp| sp.to_string());
+
             let query = USB2SnesQuery {
                 Opcode: command.to_string(),
                 Space: nspace,
@@ -154,21 +158,25 @@ pub mod usb2snes {
                 println!("Reply:");
                 println!("{}", textreply);
             }
-            return serde_json::from_str(&textreply).unwrap();
+            serde_json::from_str(&textreply).unwrap()
         }
+
         pub fn set_name(&mut self, name: String) {
             self.send_command(Command::Name, vec![name]);
         }
+
         pub fn app_version(&mut self) -> String {
             self.send_command(Command::AppVersion, vec![]);
             let usbreply = self.get_reply();
-            return usbreply.Results[0].to_string();
+            usbreply.Results[0].to_string()
         }
+
         pub fn list_device(&mut self) -> Vec<String> {
             self.send_command(Command::DeviceList, vec![]);
             let usbreply = self.get_reply();
-            return usbreply.Results;
+            usbreply.Results
         }
+
         pub fn attach(&mut self, device: &String) {
             self.send_command(Command::Attach, vec![device.to_string()]);
         }
@@ -184,79 +192,7 @@ pub mod usb2snes {
                 flags: (info[3..].to_vec()),
             }
         }
-        pub fn reset(&mut self) {
-            self.send_command(Command::Reset, vec![]);
-        }
-        pub fn menu(&mut self) {
-            self.send_command(Command::Menu, vec![]);
-        }
-        pub fn boot(&mut self, toboot: &String) {
-            self.send_command(Command::Boot, vec![toboot.clone()]);
-        }
 
-        pub fn ls(&mut self, path: &String) -> Vec<USB2SnesFileInfo> {
-            self.send_command(Command::List, vec![path.to_string()]);
-            let usbreply = self.get_reply();
-            let vec_info = usbreply.Results;
-            let mut toret: Vec<USB2SnesFileInfo> = vec![];
-            let mut i = 0;
-            while i < vec_info.len() {
-                let info: USB2SnesFileInfo = USB2SnesFileInfo {
-                    file_type: if vec_info[i] == "1" {
-                        USB2SnesFileType::File
-                    } else {
-                        USB2SnesFileType::Dir
-                    },
-                    name: vec_info[i + 1].to_string(),
-                };
-                toret.push(info);
-                i += 2;
-            }
-            return toret;
-        }
-        pub fn send_file(&mut self, path: &String, data: Vec<u8>) {
-            self.send_command(
-                Command::PutFile,
-                vec![path.to_string(), format!("{:x}", data.len())],
-            );
-            let mut start = 0;
-            let mut stop = 1024;
-            while start < data.len() {
-                self.client
-                    .send_message(&Message::binary(&data[start..stop]))
-                    .unwrap();
-                start += 1024;
-                stop += 1024;
-                if stop > data.len() {
-                    stop = data.len();
-                }
-            }
-        }
-        pub fn get_file(&mut self, path: &String) -> Vec<u8> {
-            self.send_command(Command::GetFile, vec![path.clone()]);
-            let string_hex = self.get_reply().Results[0].to_string();
-            let size = usize::from_str_radix(&string_hex.to_string(), 16).unwrap();
-            let mut data: Vec<u8> = vec![];
-            data.reserve(size);
-            loop {
-                let reply = self.client.recv_message().unwrap();
-                match reply {
-                    websocket::OwnedMessage::Binary(msgdata) => {
-                        data.extend(&msgdata);
-                    }
-                    _ => {
-                        println!("Error getting a reply");
-                    }
-                }
-                if data.len() == size {
-                    break;
-                }
-            }
-            data
-        }
-        pub fn remove_path(&mut self, path: &String) {
-            self.send_command(Command::Remove, vec![path.clone()]);
-        }
         pub fn get_address(&mut self, address: u32, size: usize) -> Vec<u8> {
             self.send_command_with_space(
                 Command::GetAddress,
@@ -280,6 +216,41 @@ pub mod usb2snes {
                 }
             }
             data
+        }
+
+        pub fn get_addresses(
+            &mut self,
+            pairs: &[(u32, usize)],
+        ) -> Result<Vec<Vec<u8>>, Box<dyn Error>> {
+            let mut args = vec![];
+            let mut total_size = 0;
+            for &(address, size) in pairs.iter() {
+                args.push(format!("{:x}", address));
+                args.push(format!("{:x}", size));
+                total_size += size;
+            }
+            self.send_command_with_space(Command::GetAddress, Some(Space::SNES), args);
+            let mut data: Vec<u8> = vec![];
+            let mut ret: Vec<Vec<u8>> = vec![];
+            data.reserve(total_size);
+            loop {
+                let reply = self.client.recv_message()?;
+                match reply {
+                    websocket::OwnedMessage::Binary(msgdata) => {
+                        data.extend(&msgdata);
+                    }
+                    _ => Err("Error getting a reply")?,
+                }
+                if data.len() == total_size {
+                    break;
+                }
+            }
+            let mut consumed = 0;
+            for &(_address, size) in pairs.iter() {
+                ret.push(data[consumed..consumed + size].into());
+                consumed += size;
+            }
+            Ok(ret)
         }
     }
 }
