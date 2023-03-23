@@ -90,8 +90,8 @@ pub mod super_metroid {
 
     #[derive(Debug, Clone)]
     pub struct GameInfo {
-        pub previous_room_id: String,
-        pub current_room_id: String,
+        pub previous_room_id: Vec<u8>,
+        pub current_room_id: Vec<u8>,
 
         pub current_game_time: GameTime,
         pub previous_game_time: GameTime,
@@ -108,8 +108,8 @@ pub mod super_metroid {
         pub fn new() -> Self {
             Self {
                 // current room data
-                previous_room_id: "0".to_string(),
-                current_room_id: "0".to_string(),
+                previous_room_id: vec![0; 2],
+                current_room_id: vec![0; 2],
 
                 // game time data
                 current_game_time: GameTime::new(),
@@ -181,7 +181,7 @@ pub mod super_metroid {
 
             self.event_flags = self.get_event_flags(&data[3]);
             self.current_game_time = self.get_game_time(&data[1]);
-            self.current_room_id = self.get_room_id(&data[2]);
+            self.current_room_id = data[2].to_owned();
             self.current_game_state = self.get_game_state(&data[0], &data[4]);
         }
 
@@ -233,9 +233,9 @@ pub mod super_metroid {
             }
         }
 
-        fn get_room_id(&self, result: &[u8]) -> String {
-            format!("0x{:02X}{:02X}", result[1], result[0])
-        }
+        // fn get_room_id(&self, result: &[u8]) -> String {
+        //     format!("0x{:02X}{:02X}", result[1], result[0])
+        // }
 
         fn is_ship_ai(&self, result: &[u8]) -> bool {
             format!("0x{:02X}{:02X}", result[1], result[0]) == *"0xAA4F"

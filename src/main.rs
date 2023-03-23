@@ -28,12 +28,12 @@ fn main() {
 
     // let mut prev_room_name = Room::new();
     let mut previous_room = Room::new(
-        "0".to_string(),
+        vec![0, 0],
         global_timer.elapsed(),
         game_info.current_game_time,
     );
     let mut current_room = Room::new(
-        "0".to_string(),
+        vec![0, 0],
         global_timer.elapsed(),
         game_info.current_game_time,
     );
@@ -57,12 +57,12 @@ fn main() {
 
                 // reset room info
                 previous_room = Room::new(
-                    "0".to_string(),
+                    vec![0, 0],
                     global_timer.elapsed(),
                     game_info.current_game_time,
                 );
                 current_room = Room::new(
-                    "0".to_string(),
+                    vec![0, 0],
                     global_timer.elapsed(),
                     game_info.current_game_time,
                 );
