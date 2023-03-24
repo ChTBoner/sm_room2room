@@ -48,8 +48,8 @@ fn main() {
     loop {
         game_info.update_data(&mut usb2snes);
         // let current_state = game_info.get_game_state(&mut usb2snes);
-        // if previous_state != current_state {
-        //     dbg!(&current_state);
+        // if game_info.previous_game_state != game_info.current_game_state {
+        //     dbg!(&game_info.current_game_state);
         // }
         match game_info.current_game_state {
             GameStates::NewGame => {
@@ -78,7 +78,8 @@ fn main() {
                     GameStates::CeresElevator,
                     GameStates::NewGame,
                     GameStates::ProgramStarted,
-                    GameStates::LoadGame
+                    GameStates::LoadGame,
+                    GameStates::Elevator,
                 ]
                 .contains(&game_info.previous_game_state)
                 {
@@ -103,7 +104,7 @@ fn main() {
                 //     global_timer.
                 // }
             }
-            GameStates::DoorTransition | GameStates::CeresElevator => {
+            GameStates::DoorTransition | GameStates::CeresElevator | GameStates::Elevator => {
                 if game_info.previous_game_state != game_info.current_game_state {
                     let igt_in_room = GameTime::diff(
                         game_info.current_game_time.to_owned(),

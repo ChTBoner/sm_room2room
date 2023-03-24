@@ -25,6 +25,7 @@ pub mod super_metroid {
         NewGame,
         CeresEscape,
         CeresElevator,
+        Elevator,
         GameTimeEnd,
         RealTimeEnd,
         Credits,
@@ -176,6 +177,7 @@ pub mod super_metroid {
                 (0xF5079B, 2), // current roomID
                 (0xF5D821, 1), // event flag
                 (0xF50FB2, 2), // enemy AI to identify ship in RTA
+                (0xF50E18, 1), //elevator room transition
             ];
 
             let data = client.get_addresses(&addresses_array).unwrap();
@@ -183,7 +185,8 @@ pub mod super_metroid {
             self.event_flags = self.get_event_flags(&data[3]);
             self.current_game_time = self.get_game_time(&data[1]);
             self.current_room_id = data[2].to_owned();
-            self.current_game_state = self.get_game_state(&data[0], &data[4]);
+            self.current_game_state = self.get_game_state(&data[0], &data[4], &data[5]);
+            // dbg!(&data[5]);
         }
 
         fn get_event_flags(&self, result: &[u8]) -> Vec<Events> {
@@ -218,8 +221,12 @@ pub mod super_metroid {
             events
         }
 
-        fn get_game_state(&self, result: &[u8], ai: &[u8]) -> GameStates {
+        fn get_game_state(&self, result: &[u8], ai: &[u8], elevator: &[u8] ) -> GameStates {
             let id = result[0].to_owned();
+
+            if elevator != &[0] {
+                return GameStates::Elevator;
+            }
 
             if self.event_flags.contains(&Events::ZebesAblaze) && self.is_ship_ai(ai) {
                 return GameStates::RealTimeEnd;
