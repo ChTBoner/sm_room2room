@@ -4,7 +4,7 @@ pub mod super_metroid {
     use strum_macros::Display;
     use time::Duration;
 
-    #[derive(Debug, PartialEq, Clone, Copy, Display)]
+    #[derive(Debug, PartialEq, Eq, Clone, Copy, Display)]
     pub enum GameStates {
         Logo,        // 0x00
         TitleScreen, // 0x01 - 1
@@ -32,7 +32,7 @@ pub mod super_metroid {
         Unknown,
     }
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     pub enum Events {
         AnimalsSaved,
         ZebesAblaze,
@@ -42,7 +42,7 @@ pub mod super_metroid {
         MeridiaTubeBroken,
     }
 
-    #[derive(Debug, Clone, Copy, PartialEq)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct GameTime {
         pub frames: u8,
         pub seconds: u8,
@@ -237,8 +237,9 @@ pub mod super_metroid {
         //     format!("0x{:02X}{:02X}", result[1], result[0])
         // }
 
-        fn is_ship_ai(&self, result: &[u8]) -> bool {
-            format!("0x{:02X}{:02X}", result[1], result[0]) == *"0xAA4F"
+        fn is_ship_ai(&self, ai: &[u8]) -> bool {
+            // format!("0x{:02X}{:02X}", result[1], result[0]) == *"0xAA4F"
+            ai == [0x4F, 0xAA]
         }
 
         pub fn get_game_time(&self, result: &[u8]) -> GameTime {

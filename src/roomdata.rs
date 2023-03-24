@@ -6,7 +6,7 @@ pub mod room_data {
     // use std::fs::File;
     // use std::path::Path;
 
-    #[derive(Debug, PartialEq, Clone)]
+    #[derive(Debug, PartialEq, Eq, Clone)]
     pub struct Location {
         pub region: String,
         pub name: String,
@@ -21,7 +21,7 @@ pub mod room_data {
         }
     }
 
-    #[derive(Debug, PartialEq, Clone)]
+    #[derive(Debug, PartialEq, Eq, Clone)]
     pub struct Room {
         pub id: Vec<u8>,
         pub location: Location,

@@ -77,7 +77,7 @@ pub mod usb2snes {
         Results: Vec<String>,
     }
 
-    #[derive(PartialEq)]
+    #[derive(PartialEq, Eq)]
     pub enum USB2SnesFileType {
         File = 0,
         Dir = 1,
