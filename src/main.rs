@@ -7,9 +7,13 @@ use roomdata::room_data::Room;
 use supermetroid::super_metroid::{GameInfo, GameStates, GameTime};
 use time::Instant;
 
+fn clear_term() {
+    // print!("{}[2J", 27 as char);
+    print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
+}
 fn main() {
     let mut usb2snes = SyncClient::connect();
-
+    clear_term();
     println!("Connected to the Usb2snes server");
     usb2snes.set_name(String::from("usb2snes-cli"));
     println!("Server version is : {:?}", usb2snes.app_version());
@@ -86,11 +90,11 @@ fn main() {
                     //get current game time for next comparison
                     game_info.previous_game_time = game_info.current_game_time;
                     global_rta_room_entered = global_timer.elapsed();
-                    println!(
-                        "Entering {} from {}",
-                        current_room.location.name, previous_room.location.name
-                    );
-                    println!("{}", global_rta_room_entered);
+                    // println!(
+                    //     "Entering {} from {}",
+                    //     current_room.location.name, previous_room.location.name
+                    // );
+                    // println!("{}", global_rta_room_entered);
                 }
                 // if game_info.previous_game_state == GameStates::RealTimeEnd {
                 //     global_timer.
@@ -103,10 +107,16 @@ fn main() {
                         current_room.igt_entry,
                     );
                     let rta_in_room = global_timer.elapsed() - current_room.rta_entry;
-
+                    clear_term();
                     println!("Leaving {}", &current_room.location.name);
                     println!("RTA = {}", rta_in_room,);
                     igt_in_room.print_game_time();
+                }
+            }
+            GameStates::RealTimeEnd => {
+                if game_info.current_game_state != game_info.previous_game_state {
+                    clear_term();
+                    println!("Run finished - RTA : {}", global_timer.elapsed());
                 }
             }
             GameStates::GameTimeEnd => {
@@ -115,21 +125,17 @@ fn main() {
                     game_info.current_game_time.print_game_time();
                 }
             }
-            GameStates::RealTimeEnd => {
-                if game_info.current_game_state != game_info.previous_game_state {
-                    println!("Run finished - RTA : {}", global_timer.elapsed());
-                }
-            }
             GameStates::GameOver | GameStates::Dead => {
+                clear_term();
                 println!("GameOver");
                 let total_rta = global_timer.elapsed();
                 println!("RTA: {}", total_rta);
                 game_info.current_game_time.print_game_time();
             }
             _ => {
-                if game_info.previous_game_state != game_info.current_game_state {
-                    println!("Not Playing - {}", game_info.current_game_state);
-                }
+                // if game_info.previous_game_state != game_info.current_game_state {
+                //     println!("Not Playing - {}", game_info.current_game_state);
+                // }
             }
         };
         if game_info.previous_game_state != game_info.current_game_state {
