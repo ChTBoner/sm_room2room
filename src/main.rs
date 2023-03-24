@@ -108,7 +108,7 @@ fn main() {
                     );
                     let rta_in_room = global_timer.elapsed() - current_room.rta_entry;
                     clear_term();
-                    println!("Leaving {}", &current_room.location.name);
+                    println!("{}", &current_room.location.name);
                     println!("RTA = {}", rta_in_room,);
                     igt_in_room.print_game_time();
                 }

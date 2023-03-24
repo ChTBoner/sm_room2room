@@ -88,7 +88,7 @@ pub mod super_metroid {
         }
     }
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug)]
     pub struct GameInfo {
         pub previous_room_id: Vec<u8>,
         pub current_room_id: Vec<u8>,
