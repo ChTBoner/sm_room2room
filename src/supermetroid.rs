@@ -30,7 +30,7 @@ pub mod super_metroid {
         Credits,
         OpeningSeq,
         Unknown,
-        ProgramStarted
+        ProgramStarted,
     }
 
     #[derive(Debug, Clone, PartialEq)]
@@ -164,7 +164,7 @@ pub mod super_metroid {
                     (0x29, GameStates::Demos),
                     (0x2A, GameStates::Demos),
                     (0x2B, GameStates::Demos),
-                    (0x2C, GameStates::Demos)
+                    (0x2C, GameStates::Demos),
                 ]),
             }
         }
@@ -239,7 +239,8 @@ pub mod super_metroid {
         // }
 
         fn is_ship_ai(&self, result: &[u8]) -> bool {
-            format!("0x{:02X}{:02X}", result[1], result[0]) == *"0xAA4F"
+            // format!("0x{:02X}{:02X}", result[1], result[0]) == *"0xAA4F"
+            result == [0x4F, 0xAA]
         }
 
         pub fn get_game_time(&self, result: &[u8]) -> GameTime {

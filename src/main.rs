@@ -2,15 +2,15 @@ mod qusb2snes;
 mod roomdata;
 mod supermetroid;
 
+use clearscreen::clear;
 use qusb2snes::usb2snes::SyncClient;
 use roomdata::room_data::Room;
 use supermetroid::super_metroid::{GameInfo, GameStates, GameTime};
 use time::Instant;
-use clearscreen;
 
 fn clear_term() {
     // print!("{}[2J", 27 as char);
-    clearscreen::clear().expect("failed to clear screen");
+    clear().expect("failed to clear screen");
 }
 fn main() {
     let mut usb2snes = SyncClient::connect();
@@ -77,7 +77,8 @@ fn main() {
                     GameStates::DoorTransition,
                     GameStates::CeresElevator,
                     GameStates::NewGame,
-                    GameStates::ProgramStarted
+                    GameStates::ProgramStarted,
+                    GameStates::LoadGame
                 ]
                 .contains(&game_info.previous_game_state)
                 {
@@ -137,6 +138,8 @@ fn main() {
             _ => {
                 // if game_info.previous_game_state != game_info.current_game_state {
                 //     println!("Not Playing - {}", game_info.current_game_state);
+                // clear();
+                // println!("Not Playing - {}", game_info.current_game_state);
                 // }
             }
         };
