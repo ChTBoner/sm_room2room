@@ -1,8 +1,9 @@
 pub mod super_metroid {
     use crate::qusb2snes::usb2snes::SyncClient;
+    use crate::roomdata::room_data::Room;
     use std::collections::HashMap;
     use strum_macros::Display;
-    use time::Duration;
+    use time::{Duration, Instant};
 
     #[derive(Debug, PartialEq, Clone, Copy, Display)]
     pub enum GameStates {
@@ -92,9 +93,10 @@ pub mod super_metroid {
 
     #[derive(Debug)]
     pub struct GameInfo {
-        pub previous_room_id: Vec<u8>,
-        pub current_room_id: Vec<u8>,
+        pub previous_room: Room,
+        pub current_room: Room,
 
+        pub global_timer: Instant,
         pub current_game_time: GameTime,
         pub previous_game_time: GameTime,
 
@@ -110,9 +112,10 @@ pub mod super_metroid {
         pub fn new() -> Self {
             Self {
                 // current room data
-                previous_room_id: vec![0; 2],
-                current_room_id: vec![0; 2],
+                previous_room: Room::new(vec![0, 0], Duration::new(0, 0), GameTime::new()),
+                current_room: Room::new(vec![0, 0], Duration::new(0, 0), GameTime::new()),
 
+                global_timer: Instant::now(),
                 // game time data
                 current_game_time: GameTime::new(),
                 previous_game_time: GameTime::new(),
@@ -169,7 +172,21 @@ pub mod super_metroid {
                 ]),
             }
         }
-
+        pub fn reset(&mut self) {
+            self.global_timer = Instant::now();
+            self.previous_game_time = GameTime::new();
+            self.current_game_time = GameTime::new();
+            self.previous_room = Room::new(
+                vec![0, 0],
+                self.global_timer.elapsed(),
+                self.current_game_time,
+            );
+            self.current_room = Room::new(
+                vec![0, 0],
+                self.global_timer.elapsed(),
+                self.current_game_time,
+            );
+        }
         pub fn update_data(&mut self, client: &mut SyncClient) {
             let addresses_array = [
                 (0xF50998, 1), // game state
@@ -184,7 +201,7 @@ pub mod super_metroid {
 
             self.event_flags = self.get_event_flags(&data[3]);
             self.current_game_time = self.get_game_time(&data[1]);
-            self.current_room_id = data[2].to_owned();
+            self.current_room.id = data[2].to_owned();
             self.current_game_state = self.get_game_state(&data[0], &data[4], &data[5]);
             // dbg!(&data[5]);
         }
@@ -221,17 +238,16 @@ pub mod super_metroid {
             events
         }
 
-        fn get_game_state(&self, result: &[u8], ai: &[u8], elevator: &[u8] ) -> GameStates {
-            let id = result[0].to_owned();
-
+        fn get_game_state(&self, result: &[u8], ai: &[u8], elevator: &[u8]) -> GameStates {
             if elevator != &[0] {
                 return GameStates::Elevator;
             }
 
-            if self.event_flags.contains(&Events::ZebesAblaze) && self.is_ship_ai(ai) {
+            if self.event_flags.contains(&Events::ZebesAblaze) && ai == [0x4F, 0xAA] {
                 return GameStates::RealTimeEnd;
             };
 
+            let id = result[0].to_owned();
             match self.game_states.get(&id) {
                 Some(state) => state.to_owned(),
                 None => {
@@ -239,15 +255,6 @@ pub mod super_metroid {
                     GameStates::Unknown
                 }
             }
-        }
-
-        // fn get_room_id(&self, result: &[u8]) -> String {
-        //     format!("0x{:02X}{:02X}", result[1], result[0])
-        // }
-
-        fn is_ship_ai(&self, result: &[u8]) -> bool {
-            // format!("0x{:02X}{:02X}", result[1], result[0]) == *"0xAA4F"
-            result == [0x4F, 0xAA]
         }
 
         pub fn get_game_time(&self, result: &[u8]) -> GameTime {

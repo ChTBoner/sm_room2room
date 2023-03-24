@@ -122,10 +122,6 @@ pub mod usb2snes {
             if self.devel {
                 println!("Send command : {:?}", command);
             }
-            // let nspace: Option<String> = match space {
-            //     None => None,
-            //     Some(sp) => Some(sp.to_string()),
-            // };
 
             let nspace = space.map(|sp| sp.to_string());
 

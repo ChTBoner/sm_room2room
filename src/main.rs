@@ -6,10 +6,8 @@ use clearscreen::clear;
 use qusb2snes::usb2snes::SyncClient;
 use roomdata::room_data::Room;
 use supermetroid::super_metroid::{GameInfo, GameStates, GameTime};
-use time::Instant;
 
 fn clear_term() {
-    // print!("{}[2J", 27 as char);
     clear().expect("failed to clear screen");
 }
 fn main() {
@@ -25,52 +23,14 @@ fn main() {
 
     let mut game_info = GameInfo::new();
 
-    // let mut previous_state = GameState::new();
-    let mut global_timer = Instant::now();
-
-    // let mut previous_game_time = GameTime::new();
-    // let mut game_time = GameTime::new();
-
-    // let mut prev_room_name = Room::new();
-    let mut previous_room = Room::new(
-        vec![0, 0],
-        global_timer.elapsed(),
-        game_info.current_game_time,
-    );
-    let mut current_room = Room::new(
-        vec![0, 0],
-        global_timer.elapsed(),
-        game_info.current_game_time,
-    );
-
-    let mut global_rta_room_entered;
-
     loop {
         game_info.update_data(&mut usb2snes);
-        // let current_state = game_info.get_game_state(&mut usb2snes);
-        // if game_info.previous_game_state != game_info.current_game_state {
-        //     dbg!(&game_info.current_game_state);
-        // }
+
         match game_info.current_game_state {
             GameStates::NewGame => {
-                // reset global timer
-                global_timer = Instant::now();
-
-                // reset IGT info
-                game_info.previous_game_time = GameTime::new();
-                game_info.current_game_time = GameTime::new();
-
-                // reset room info
-                previous_room = Room::new(
-                    vec![0, 0],
-                    global_timer.elapsed(),
-                    game_info.current_game_time,
-                );
-                current_room = Room::new(
-                    vec![0, 0],
-                    global_timer.elapsed(),
-                    game_info.current_game_time,
-                );
+                if game_info.previous_game_state != game_info.current_game_state {
+                    game_info.reset();
+                }
             }
             GameStates::Playing | GameStates::Saving => {
                 if [
@@ -84,35 +44,26 @@ fn main() {
                 .contains(&game_info.previous_game_state)
                 {
                     // entering new room
-                    previous_room = current_room;
-                    current_room = Room::new(
-                        game_info.current_room_id.to_owned(),
-                        global_timer.elapsed(),
+                    game_info.previous_room = game_info.current_room.clone();
+                    game_info.current_room = Room::new(
+                        game_info.current_room.id,
+                        game_info.global_timer.elapsed(),
                         game_info.current_game_time,
                     );
 
                     //get current game time for next comparison
                     game_info.previous_game_time = game_info.current_game_time;
-                    global_rta_room_entered = global_timer.elapsed();
-                    // println!(
-                    //     "Entering {} from {}",
-                    //     current_room.location.name, previous_room.location.name
-                    // );
-                    // println!("{}", global_rta_room_entered);
                 }
-                // if game_info.previous_game_state == GameStates::RealTimeEnd {
-                //     global_timer.
-                // }
             }
             GameStates::DoorTransition | GameStates::CeresElevator | GameStates::Elevator => {
                 if game_info.previous_game_state != game_info.current_game_state {
                     let igt_in_room = GameTime::diff(
                         game_info.current_game_time.to_owned(),
-                        current_room.igt_entry,
+                        game_info.current_room.igt_entry,
                     );
-                    let rta_in_room = global_timer.elapsed() - current_room.rta_entry;
+                    let rta_in_room = game_info.global_timer.elapsed() - game_info.current_room.rta_entry;
                     clear_term();
-                    println!("{}", &current_room.location.name);
+                    println!("{}", &game_info.current_room.location.name);
                     println!("RTA = {}", rta_in_room,);
                     igt_in_room.print_game_time();
                 }
@@ -120,7 +71,7 @@ fn main() {
             GameStates::RealTimeEnd => {
                 if game_info.current_game_state != game_info.previous_game_state {
                     clear_term();
-                    println!("Run finished - RTA : {}", global_timer.elapsed());
+                    println!("Run finished - RTA : {}", game_info.global_timer.elapsed());
                 }
             }
             GameStates::GameTimeEnd => {
@@ -132,16 +83,11 @@ fn main() {
             GameStates::GameOver | GameStates::Dead => {
                 clear_term();
                 println!("GameOver");
-                let total_rta = global_timer.elapsed();
+                let total_rta = game_info.global_timer.elapsed();
                 println!("RTA: {}", total_rta);
                 game_info.current_game_time.print_game_time();
             }
             _ => {
-                // if game_info.previous_game_state != game_info.current_game_state {
-                //     println!("Not Playing - {}", game_info.current_game_state);
-                // clear();
-                // println!("Not Playing - {}", game_info.current_game_state);
-                // }
             }
         };
         if game_info.previous_game_state != game_info.current_game_state {
