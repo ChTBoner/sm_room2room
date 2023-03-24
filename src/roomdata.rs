@@ -3,7 +3,7 @@ pub mod room_data {
     use std::collections::HashMap;
     use time::Duration;
 
-    #[derive(Debug, PartialEq, Clone)]
+    #[derive(Debug, PartialEq, Eq, Clone)]
     pub struct Location {
         pub region: String,
         pub name: String,
@@ -18,7 +18,7 @@ pub mod room_data {
         }
     }
 
-    #[derive(Debug, PartialEq, Clone)]
+    #[derive(Debug, PartialEq, Eq, Clone)]
     pub struct Room {
         pub id: Vec<u8>,
         pub location: Location,
@@ -1883,6 +1883,5 @@ pub mod room_data {
 
             rooms_data.get(&id).unwrap_or(&Location::empty()).to_owned()
         }
-
     }
 }

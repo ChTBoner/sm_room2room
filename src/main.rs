@@ -10,6 +10,7 @@ use supermetroid::super_metroid::{GameInfo, GameStates, GameTime};
 fn clear_term() {
     clear().expect("failed to clear screen");
 }
+
 fn main() {
     let mut usb2snes = SyncClient::connect();
     clear_term();
@@ -61,7 +62,8 @@ fn main() {
                         game_info.current_game_time.to_owned(),
                         game_info.current_room.igt_entry,
                     );
-                    let rta_in_room = game_info.global_timer.elapsed() - game_info.current_room.rta_entry;
+                    let rta_in_room =
+                        game_info.global_timer.elapsed() - game_info.current_room.rta_entry;
                     clear_term();
                     println!("{}", &game_info.current_room.location.name);
                     println!("RTA = {}", rta_in_room,);
@@ -87,8 +89,7 @@ fn main() {
                 println!("RTA: {}", total_rta);
                 game_info.current_game_time.print_game_time();
             }
-            _ => {
-            }
+            _ => {}
         };
         if game_info.previous_game_state != game_info.current_game_state {
             game_info.previous_game_state = game_info.current_game_state

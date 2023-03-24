@@ -48,7 +48,7 @@ pub mod usb2snes {
         GetAddress,
     }
     #[derive(Display, Debug)]
-    #[allow(dead_code)]
+    #[allow(dead_code, clippy::upper_case_acronyms)]
     pub enum Space {
         None,
         SNES,
@@ -77,7 +77,7 @@ pub mod usb2snes {
         Results: Vec<String>,
     }
 
-    #[derive(PartialEq)]
+    #[derive(PartialEq, Eq)]
     pub enum USB2SnesFileType {
         File = 0,
         Dir = 1,

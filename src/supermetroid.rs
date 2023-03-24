@@ -5,7 +5,7 @@ pub mod super_metroid {
     use strum_macros::Display;
     use time::{Duration, Instant};
 
-    #[derive(Debug, PartialEq, Clone, Copy, Display)]
+    #[derive(Debug, PartialEq, Eq, Clone, Copy, Display)]
     pub enum GameStates {
         Logo,        // 0x00
         TitleScreen, // 0x01 - 1
@@ -35,7 +35,7 @@ pub mod super_metroid {
         ProgramStarted,
     }
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     pub enum Events {
         AnimalsSaved,
         ZebesAblaze,
@@ -45,7 +45,7 @@ pub mod super_metroid {
         MeridiaTubeBroken,
     }
 
-    #[derive(Debug, Clone, Copy, PartialEq)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct GameTime {
         pub frames: u8,
         pub seconds: u8,
@@ -239,7 +239,7 @@ pub mod super_metroid {
         }
 
         fn get_game_state(&self, result: &[u8], ai: &[u8], elevator: &[u8]) -> GameStates {
-            if elevator != &[0] {
+            if elevator != [0] {
                 return GameStates::Elevator;
             }
 
