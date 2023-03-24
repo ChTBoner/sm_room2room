@@ -76,6 +76,7 @@ fn main() {
                     GameStates::DoorTransition,
                     GameStates::CeresElevator,
                     GameStates::NewGame,
+                    GameStates::ProgramStarted
                 ]
                 .contains(&game_info.previous_game_state)
                 {

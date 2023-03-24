@@ -30,6 +30,7 @@ pub mod super_metroid {
         Credits,
         OpeningSeq,
         Unknown,
+        ProgramStarted
     }
 
     #[derive(Debug, Clone, PartialEq)]
@@ -118,8 +119,8 @@ pub mod super_metroid {
                 event_flags: Vec::new(),
 
                 // current game state data
-                previous_game_state: GameStates::Unknown,
-                current_game_state: GameStates::Unknown,
+                previous_game_state: GameStates::ProgramStarted,
+                current_game_state: GameStates::ProgramStarted,
 
                 game_states: HashMap::from([
                     (0x00, GameStates::Logo),
@@ -163,7 +164,7 @@ pub mod super_metroid {
                     (0x29, GameStates::Demos),
                     (0x2A, GameStates::Demos),
                     (0x2B, GameStates::Demos),
-                    (0x2C, GameStates::Demos),
+                    (0x2C, GameStates::Demos)
                 ]),
             }
         }
