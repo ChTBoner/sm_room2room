@@ -6,10 +6,11 @@ use qusb2snes::usb2snes::SyncClient;
 use roomdata::room_data::Room;
 use supermetroid::super_metroid::{GameInfo, GameStates, GameTime};
 use time::Instant;
+use clearscreen;
 
 fn clear_term() {
     // print!("{}[2J", 27 as char);
-    print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
+    clearscreen::clear().expect("failed to clear screen");
 }
 fn main() {
     let mut usb2snes = SyncClient::connect();
