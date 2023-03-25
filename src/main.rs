@@ -15,7 +15,7 @@ fn main() {
     let mut usb2snes = SyncClient::connect();
     clear_term();
     println!("Connected to {:?}", usb2snes.app_version());
-    
+
     usb2snes.set_name(String::from("sm_room2room"));
 
     let devices = usb2snes.list_device();
