@@ -194,7 +194,7 @@ pub mod super_metroid {
                 (0xF5079B, 2), // current roomID
                 (0xF5D821, 1), // event flag
                 (0xF50FB2, 2), // enemy AI to identify ship in RTA
-                (0xF50E18, 1), //elevator room transition
+                (0xF50E18, 1), // elevator room transition
             ];
 
             let data = client.get_addresses(&addresses_array).unwrap();

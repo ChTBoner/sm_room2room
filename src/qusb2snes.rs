@@ -55,6 +55,7 @@ pub mod usb2snes {
         CMD,
     }
 
+    #[derive(Debug)]
     pub struct Infos {
         pub version: String,
         pub dev_type: String,
@@ -181,6 +182,7 @@ pub mod usb2snes {
             self.send_command(Command::Info, vec![]);
             let usbreply = self.get_reply();
             let info: Vec<String> = usbreply.Results;
+            dbg!(&info);
             Infos {
                 version: info[0].clone(),
                 dev_type: info[1].clone(),
