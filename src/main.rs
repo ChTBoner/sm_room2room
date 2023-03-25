@@ -21,8 +21,6 @@ fn main() {
     let devices = usb2snes.list_device();
 
     usb2snes.attach(&devices[0]);
-    // let sock_info = usb2snes.info();
-    // dbg!(sock_info);
 
     let mut game_info = GameInfo::new();
 
