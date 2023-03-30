@@ -14,13 +14,15 @@ fn clear_term() {
 fn main() {
     let mut usb2snes = SyncClient::connect();
     clear_term();
-    println!("Connected to {:?}", usb2snes.app_version());
+    println!("Connected to {}", usb2snes.app_version());
 
     usb2snes.set_name(String::from("sm_room2room"));
 
     let devices = usb2snes.list_device();
 
     usb2snes.attach(&devices[0]);
+    let info = usb2snes.info();
+    println!("Attached to {} - {}", info.dev_type, info.version);
 
     let mut game_info = GameInfo::new();
 
