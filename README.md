@@ -4,7 +4,7 @@ An attempt at a Super Metroid Speedrun analysis tool.
 (AKA an attempt at learning Rust)
 
 ## Goal
-Then endgame here will be to have some sort of GUI (App or Webpage) to analyse Speedruns, with time data room by room, for precise analysis, with graphs, tables etc...
+The endgame here will be to have some sort of GUI (App or Webpage) to analyse Speedruns, with time data room by room, for precise analysis, with graphs, tables etc...
 
 I am a father, a husband and have a job. This project will not take precedence over them.
 
