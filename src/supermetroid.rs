@@ -83,11 +83,11 @@ pub mod super_metroid {
             }
         }
 
-        pub fn print_game_time(self) {
-            println!(
+        pub fn print_game_time(self) -> String {
+            format!(
                 "Game Time => {}h{}m{}s{}f",
                 self.hours, self.minutes, self.seconds, self.frames
-            );
+            )
         }
     }
 
@@ -125,6 +125,8 @@ pub mod super_metroid {
                 // current game state data
                 previous_game_state: GameStates::ProgramStarted,
                 current_game_state: GameStates::ProgramStarted,
+
+                // log_data: String::from("Init new Game State"),
 
                 game_states: HashMap::from([
                     (0x00, GameStates::Logo),
@@ -172,7 +174,9 @@ pub mod super_metroid {
                 ]),
             }
         }
-        pub fn reset(&mut self) {
+
+        fn reset(&mut self) {
+            println!("Reset");
             self.global_timer = Instant::now();
             self.previous_game_time = GameTime::new();
             self.current_game_time = GameTime::new();
@@ -187,7 +191,8 @@ pub mod super_metroid {
                 self.current_game_time,
             );
         }
-        pub fn update_data(&mut self, client: &mut SyncClient) {
+
+        pub fn update_state(&mut self, client: &mut SyncClient) {
             let addresses_array = [
                 (0xF50998, 1), // game state
                 (0xF509DA, 8), // game time
@@ -203,7 +208,71 @@ pub mod super_metroid {
             self.current_game_time = self.get_game_time(&data[1]);
             self.current_room.id = data[2].to_owned();
             self.current_game_state = self.get_game_state(&data[0], &data[4], &data[5]);
-            // dbg!(&data[5]);
+
+            match self.current_game_state {
+                GameStates::NewGame => {
+                    if self.previous_game_state != self.current_game_state {
+                        self.reset();
+                    }
+                }
+                GameStates::Playing | GameStates::Saving => {
+                    if [
+                        GameStates::DoorTransition,
+                        GameStates::CeresElevator,
+                        GameStates::NewGame,
+                        GameStates::ProgramStarted,
+                        GameStates::LoadGame,
+                        GameStates::Elevator,
+                    ]
+                    .contains(&self.previous_game_state)
+                    {
+                        // entering new room
+                        self.previous_room = self.current_room.clone();
+                        self.current_room = Room::new(
+                            self.current_room.id.clone(),
+                            self.global_timer.elapsed(),
+                            self.current_game_time,
+                        );
+    
+                        // get current game time for next comparison
+                        self.previous_game_time = self.current_game_time;
+                        println!("");
+                    }
+                }
+                GameStates::DoorTransition | GameStates::CeresElevator | GameStates::Elevator => {
+                    if self.previous_game_state != self.current_game_state {
+                        let igt_in_room = GameTime::diff(
+                            self.current_game_time.to_owned(),
+                            self.current_room.igt_entry,
+                        );
+                        let rta_in_room =
+                        self.global_timer.elapsed() - self.current_room.rta_entry;
+                        // clear_term();
+                        println!("{}\nRTA = {}\n{}", &self.current_room.location.name, rta_in_room,  igt_in_room.print_game_time());
+                    }
+                }
+                GameStates::RealTimeEnd => {
+                    if self.current_game_state != self.previous_game_state {
+                        // clear_term();
+                        println!("Run finished - RTA : {}", self.global_timer.elapsed());
+                    }
+                }
+                GameStates::GameTimeEnd => {
+                    if self.current_game_state != self.previous_game_state {
+                        println!("IGT Run finished\n{}", self.current_game_time.print_game_time());
+                    }
+                }
+                GameStates::GameOver | GameStates::Dead => {
+                    // clear_term();
+                    let total_rta = self.global_timer.elapsed();
+                    println!("GameOver\nRTA: {}\n{}", total_rta, self.current_game_time.print_game_time());
+                }
+                _ => {}
+            };
+            if self.previous_game_state != self.current_game_state {
+                // println!(format!("GameState Switched from {} to {}", self.previous_game_state, self.current_game_state);
+                self.previous_game_state = self.current_game_state;
+            }
         }
 
         fn get_event_flags(&self, result: &[u8]) -> Vec<Events> {
@@ -238,7 +307,7 @@ pub mod super_metroid {
             events
         }
 
-        fn get_game_state(&self, result: &[u8], ai: &[u8], elevator: &[u8]) -> GameStates {
+        fn get_game_state(&mut self, result: &[u8], ai: &[u8], elevator: &[u8]) -> GameStates {
             if elevator != [0] {
                 return GameStates::Elevator;
             }
@@ -257,7 +326,7 @@ pub mod super_metroid {
             }
         }
 
-        pub fn get_game_time(&self, result: &[u8]) -> GameTime {
+        fn get_game_time(&self, result: &[u8]) -> GameTime {
             GameTime {
                 frames: result[0],
                 seconds: result[2],
