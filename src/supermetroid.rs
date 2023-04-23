@@ -1,5 +1,5 @@
 pub mod super_metroid {
-    use crate::qusb2snes::usb2snes::SyncClient;
+    use rusb2snes::SyncClient;
     use crate::roomdata::room_data::Room;
     use std::collections::HashMap;
     use strum_macros::Display;
@@ -202,7 +202,7 @@ pub mod super_metroid {
                 (0xF50E18, 1), // elevator room transition
             ];
 
-            let data = client.get_addresses(&addresses_array).unwrap();
+            let data = client.get_multi_address_as_vec_u8(&addresses_array).unwrap();
 
             self.event_flags = self.get_event_flags(&data[3]);
             self.current_game_time = self.get_game_time(&data[1]);
